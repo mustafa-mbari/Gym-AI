@@ -76,16 +76,16 @@ export function WorkoutSession({
     return () => clearInterval(id);
   }, []);
 
-  // Rest countdown
+  // Rest countdown — a self-stopping interval (decrements inside the callback)
   React.useEffect(() => {
     if (!rest.active) return;
-    if (rest.left <= 0) {
-      setRest({ active: false, left: 0 });
-      return;
-    }
-    const id = setTimeout(() => setRest((r) => ({ ...r, left: r.left - 1 })), 1000);
-    return () => clearTimeout(id);
-  }, [rest]);
+    const id = setInterval(() => {
+      setRest((r) =>
+        r.left <= 1 ? { active: false, left: 0 } : { ...r, left: r.left - 1 }
+      );
+    }, 1000);
+    return () => clearInterval(id);
+  }, [rest.active]);
 
   const exercise = day.exercises[current];
   const totalSets = sets.reduce((n, s) => n + s.length, 0);

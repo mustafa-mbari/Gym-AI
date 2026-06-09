@@ -67,6 +67,8 @@ export function OnboardingWizard() {
   const [submitting, setSubmitting] = React.useState(false);
   const [mounted, setMounted] = React.useState(false);
 
+  // Hydration guard for the persisted Zustand store — intentional mount flag.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   React.useEffect(() => setMounted(true), []);
 
   function validate(stepIndex: number): Record<string, string> {

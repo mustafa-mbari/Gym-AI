@@ -13,7 +13,7 @@ import { getMeasurements, getProfile, getSessions } from "@/lib/queries";
 import { computeStats, weeklyFrequency } from "@/lib/stats";
 import { planForProfile, topMuscleGroups } from "@/lib/plan";
 import { bmi, bmiCategory, bmr, calorieTarget, estimateWeeksToGoal, tdee } from "@/lib/fitness";
-import { formatWeight, weightUnit } from "@/lib/format";
+import { weightUnit } from "@/lib/format";
 import { kgToLb } from "@/lib/fitness";
 import { muscleLabel } from "@/lib/labels";
 

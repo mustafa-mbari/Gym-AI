@@ -15,6 +15,8 @@ import {
 export function ThemeToggle({ className }: { className?: string }) {
   const { setTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
+  // Hydration guard for next-themes — intentional one-shot mount flag.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   React.useEffect(() => setMounted(true), []);
 
   return (

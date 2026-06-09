@@ -19,7 +19,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { saveMeasurement } from "@/lib/profile-actions";
-import { kgToLb, lbToKg } from "@/lib/fitness";
+import { lbToKg } from "@/lib/fitness";
 import { lengthUnit, weightUnit } from "@/lib/format";
 import type { MeasurementInput } from "@/lib/validations";
 import type { UnitSystem } from "@/types";

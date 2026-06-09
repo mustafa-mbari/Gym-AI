@@ -205,27 +205,18 @@ export function WeightField({
   unit: UnitSystem;
   error?: string;
 }) {
-  const toDisplay = React.useCallback(
-    (kg: number) => (unit === "imperial" ? kgToLb(kg) : kg),
-    [unit]
-  );
-  const [text, setText] = React.useState(() =>
-    toDisplay(valueKg).toFixed(0)
-  );
-  React.useEffect(() => {
-    setText(toDisplay(valueKg).toFixed(0));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [unit]);
+  const display =
+    unit === "imperial" ? Math.round(kgToLb(valueKg)) : Math.round(valueKg);
 
   return (
     <NumberField
       label={label}
-      value={text === "" ? null : Number(text)}
+      value={display}
       suffix={unit === "imperial" ? "lb" : "kg"}
       error={error}
       onChange={(v) => {
-        setText(v === null ? "" : String(v));
-        if (v !== null) onChange(unit === "imperial" ? lbToKg(v) : v);
+        if (v === null) return;
+        onChange(unit === "imperial" ? lbToKg(v) : v);
       }}
     />
   );

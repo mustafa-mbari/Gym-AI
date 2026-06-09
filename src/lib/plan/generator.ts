@@ -30,7 +30,6 @@ import {
   resolveEquipment,
   SCHEMES,
   type Emphasis,
-  type Scheme,
   type SlotRole,
 } from "./schemes";
 import {
@@ -54,13 +53,6 @@ const SPLIT_LABEL: Record<string, string> = {
 
 const isTimed = (ex: Exercise, role: SlotRole) =>
   role === "cardio" || ex.force === "static" || ex.category === "cardio";
-
-/** Average working seconds per set, used for duration estimates. */
-function workSeconds(scheme: Scheme, timed: boolean): number {
-  if (timed) return 45;
-  const avgReps = (scheme.repLow + scheme.repHigh) / 2;
-  return Math.round(avgReps * 3.5);
-}
 
 interface SelectContext {
   available: Set<string>;
@@ -201,15 +193,14 @@ function buildPlannedExercise(
   };
 }
 
-function estimateMinutes(exercises: PlannedExercise[], emphasis: Emphasis) {
+function estimateMinutes(exercises: PlannedExercise[]) {
   let seconds = 0;
   for (const pe of exercises) {
-    const scheme = SCHEMES[emphasis][roleFromReps(pe)];
-    const timed = pe.reps.includes("min") || pe.reps.includes("s");
     if (pe.reps.includes("min")) {
       seconds += pe.rep_low; // cardio block is already in seconds
       continue;
     }
+    const timed = pe.reps.includes("s");
     const perSet = (timed ? 45 : 35) + pe.rest_seconds;
     seconds += pe.sets * perSet;
   }
@@ -217,30 +208,14 @@ function estimateMinutes(exercises: PlannedExercise[], emphasis: Emphasis) {
   return Math.round(seconds / 60) + 6;
 }
 
-// Helper to back out a role bucket from a planned exercise for estimation.
-function roleFromReps(_pe: PlannedExercise): SlotRole {
-  return "accessory";
-}
-
 function trimToTime(
   exercises: PlannedExercise[],
-  emphasis: Emphasis,
   budget: number
 ): PlannedExercise[] {
   const result = [...exercises];
-  // Drop trailing accessory/core/cardio work first, never the top 2 lifts.
-  while (
-    result.length > 3 &&
-    estimateMinutes(result, emphasis) > budget + 8
-  ) {
-    // Find last removable (not one of the first two primary slots).
-    let removeIdx = -1;
-    for (let i = result.length - 1; i >= 2; i--) {
-      removeIdx = i;
-      break;
-    }
-    if (removeIdx < 0) break;
-    result.splice(removeIdx, 1);
+  // Drop trailing accessory/cardio work first, never the top 3 movements.
+  while (result.length > 3 && estimateMinutes(result) > budget + 8) {
+    result.pop();
   }
   return result;
 }
@@ -269,16 +244,14 @@ function buildDay(
     planned.push(buildPlannedExercise(ex, slot, emphasis));
   }
 
-  const fitted = trimToTime(planned, emphasis, budget);
-  const strength = fitted.filter(
-    (p) => !p.reps.includes("min")
-  );
+  const fitted = trimToTime(planned, budget);
+  const strength = fitted.filter((p) => !p.reps.includes("min"));
 
   return {
     index,
     name: template.name,
     focus: template.focus,
-    estimated_minutes: estimateMinutes(fitted, emphasis),
+    estimated_minutes: estimateMinutes(fitted),
     exercises: strength,
     cardio: cardioNote,
   };
