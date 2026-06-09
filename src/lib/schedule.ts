@@ -22,6 +22,12 @@ export interface ScheduleEntry {
   status: ScheduleStatus;
 }
 
+/** The serialisable schedule state shared between server and client. */
+export interface SchedulePayload {
+  entries: Record<string, ScheduleEntry>;
+  cleared: Record<string, true>;
+}
+
 export const isoDate = (d: Date) => format(d, "yyyy-MM-dd");
 
 /** Which weekdays (0=Sun … 6=Sat) host a session for a given weekly frequency. */

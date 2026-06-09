@@ -11,6 +11,8 @@ interface ScheduleStore {
   /** Dates the user turned into rest days (so defaults don't re-fill them). */
   cleared: Record<string, true>;
 
+  /** Replace local state with a server-loaded snapshot (logged-in users). */
+  hydrate: (state: { entries: ScheduleStore["entries"]; cleared: ScheduleStore["cleared"] }) => void;
   /** Fill in default sessions for dates not yet materialised or cleared. */
   ensure: (list: Array<{ date: string; dayIndex: number | null }>) => void;
   setStatus: (date: string, status: ScheduleStatus) => void;
@@ -25,6 +27,9 @@ export const useScheduleStore = create<ScheduleStore>()(
     (set) => ({
       entries: {},
       cleared: {},
+
+      hydrate: (state) =>
+        set({ entries: state.entries, cleared: state.cleared }),
 
       ensure: (list) =>
         set((s) => {

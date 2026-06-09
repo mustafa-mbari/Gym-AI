@@ -49,23 +49,65 @@ import {
   WEEKDAY_LABELS,
   weekDates,
   type ScheduleEntry,
+  type SchedulePayload,
 } from "@/lib/schedule";
+import {
+  clearScheduleDate,
+  moveScheduleEntry,
+  upsertScheduleEntry,
+} from "@/lib/schedule-actions";
 import type { WorkoutPlan } from "@/types";
 import { cn } from "@/lib/utils";
 
 type View = "month" | "week" | "day";
 
-export function CalendarView({ plan }: { plan: WorkoutPlan }) {
+export function CalendarView({
+  plan,
+  initial,
+}: {
+  plan: WorkoutPlan;
+  initial: SchedulePayload | null;
+}) {
+  const synced = initial != null; // logged-in: persist to Supabase
   const [view, setView] = React.useState<View>("month");
   const [cursor, setCursor] = React.useState<Date>(() => new Date());
   const [mounted, setMounted] = React.useState(false);
   const [moveFrom, setMoveFrom] = React.useState<string | null>(null);
 
-  const { entries, ensure, setStatus, move, assign, makeRest } =
+  const { entries, ensure, setStatus, move, assign, makeRest, hydrate } =
     useScheduleStore();
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  React.useEffect(() => setMounted(true), []);
+  /* eslint-disable react-hooks/set-state-in-effect */
+  React.useEffect(() => {
+    if (initial) hydrate(initial);
+    setMounted(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  // Mutations write through to the server for logged-in users.
+  const handleStatus = (date: string, status: ScheduleEntry["status"]) => {
+    setStatus(date, status);
+    if (synced) {
+      const e = useScheduleStore.getState().entries[date];
+      if (e) void upsertScheduleEntry({ date, day_index: e.dayIndex, status });
+    }
+  };
+  const handleMove = (from: string, to: string) => {
+    const e = useScheduleStore.getState().entries[from];
+    move(from, to);
+    if (synced && e)
+      void moveScheduleEntry({ from, to, day_index: e.dayIndex });
+  };
+  const handleAssign = (date: string, dayIndex: number) => {
+    assign(date, dayIndex);
+    if (synced)
+      void upsertScheduleEntry({ date, day_index: dayIndex, status: "planned" });
+  };
+  const handleRest = (date: string) => {
+    makeRest(date);
+    if (synced) void clearScheduleDate(date);
+  };
 
   // Lazily materialise default sessions for the visible range.
   const visible = React.useMemo(() => {
@@ -160,10 +202,10 @@ export function CalendarView({ plan }: { plan: WorkoutPlan }) {
           plan={plan}
           cursor={cursor}
           entryFor={entryFor}
-          onStatus={setStatus}
+          onStatus={handleStatus}
           onMove={setMoveFrom}
-          onRest={makeRest}
-          onAssign={assign}
+          onRest={handleRest}
+          onAssign={handleAssign}
         />
       )}
       {view === "day" && (
@@ -171,10 +213,10 @@ export function CalendarView({ plan }: { plan: WorkoutPlan }) {
           plan={plan}
           date={cursor}
           entry={entryFor(cursor)}
-          onStatus={setStatus}
+          onStatus={handleStatus}
           onMove={setMoveFrom}
-          onRest={makeRest}
-          onAssign={assign}
+          onRest={handleRest}
+          onAssign={handleAssign}
         />
       )}
 
@@ -194,7 +236,7 @@ export function CalendarView({ plan }: { plan: WorkoutPlan }) {
         from={moveFrom}
         onClose={() => setMoveFrom(null)}
         onConfirm={(from, to) => {
-          move(from, to);
+          handleMove(from, to);
           setMoveFrom(null);
         }}
       />

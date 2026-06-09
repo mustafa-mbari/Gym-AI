@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   LineChart,
   Settings,
+  Sparkles,
   User,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -51,6 +52,7 @@ export const NAV_ITEMS: NavItem[] = [
     icon: LineChart,
     mobile: true,
   },
+  { href: "/coach", label: "Coach", icon: Sparkles },
   { href: "/equipment", label: "Equipment", icon: Boxes },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   {

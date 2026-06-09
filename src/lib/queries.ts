@@ -8,6 +8,7 @@ import {
   demoSessions,
   starterMeasurement,
 } from "@/lib/demo";
+import { getExercise } from "@/data";
 import type { Measurement, Profile, TrainingSession } from "@/types";
 
 export const DEMO_PROFILE_COOKIE = "jym-demo-profile";
@@ -136,4 +137,55 @@ export async function getLastLoggedSets(): Promise<
     }
   }
   return out;
+}
+
+export interface StrengthSeries {
+  slug: string;
+  name: string;
+  points: Array<{ date: string; weight: number }>; // weight in kg
+}
+
+/**
+ * Top-weight-per-day for the user's most-logged exercises, for strength trend
+ * charts. Empty in demo mode (no logged history).
+ */
+export async function getStrengthHistory(limit = 5): Promise<StrengthSeries[]> {
+  const supabase = await createClient();
+  if (!supabase) return [];
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data } = await supabase
+    .from("exercise_logs")
+    .select("exercise_slug, weight_kg, created_at")
+    .order("created_at", { ascending: true })
+    .limit(1000);
+
+  // slug → (dayKey → max weight that day)
+  const bySlug = new Map<string, Map<string, number>>();
+  for (const row of (data ?? []) as Array<{
+    exercise_slug: string;
+    weight_kg: number | null;
+    created_at: string;
+  }>) {
+    if (row.weight_kg == null) continue;
+    const day = row.created_at.slice(0, 10);
+    const m = bySlug.get(row.exercise_slug) ?? new Map<string, number>();
+    m.set(day, Math.max(m.get(day) ?? 0, row.weight_kg));
+    bySlug.set(row.exercise_slug, m);
+  }
+
+  return [...bySlug.entries()]
+    .map(([slug, days]) => ({
+      slug,
+      name: getExercise(slug)?.name ?? slug,
+      points: [...days.entries()]
+        .map(([date, weight]) => ({ date, weight }))
+        .sort((a, b) => a.date.localeCompare(b.date)),
+    }))
+    .filter((s) => s.points.length >= 2)
+    .sort((a, b) => b.points.length - a.points.length)
+    .slice(0, limit);
 }

@@ -130,15 +130,13 @@ function selectExercise(slot: Slot, ctx: SelectContext): Exercise | null {
       DIFFICULTY_RANK[ex.difficulty] <= ctx.cap &&
       !ctx.avoid.has(ex.slug) &&
       !ctx.usedToday.has(ex.slug),
-    // 3. Allow harder movements (still avoiding contraindications).
+    // 3. Allow harder movements — but always keep equipment + injury
+    //    constraints. If nothing qualifies, the slot is skipped (better than
+    //    programming an exercise the member can't do or shouldn't).
     (ex: Exercise) =>
       slot.groups.some((g) => ex.muscle_groups.includes(g)) &&
       isAvailable(ex, ctx.available) &&
       !ctx.avoid.has(ex.slug) &&
-      !ctx.usedToday.has(ex.slug),
-    // 4. Last resort: any unused exercise hitting the muscle groups.
-    (ex: Exercise) =>
-      slot.groups.some((g) => ex.muscle_groups.includes(g)) &&
       !ctx.usedToday.has(ex.slug),
   ];
 

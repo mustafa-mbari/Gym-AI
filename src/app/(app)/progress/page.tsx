@@ -8,7 +8,12 @@ import { StatCard } from "@/components/stat-card";
 import { AreaTrend } from "@/components/charts/area-trend";
 import { FrequencyBars } from "@/components/charts/bars";
 import { LogMeasurementDialog } from "@/components/progress/log-measurement-dialog";
-import { getMeasurements, getProfile, getSessions } from "@/lib/queries";
+import {
+  getMeasurements,
+  getProfile,
+  getSessions,
+  getStrengthHistory,
+} from "@/lib/queries";
 import { computeStats, weeklyFrequency } from "@/lib/stats";
 import { formatWeight, lengthUnit, weightUnit } from "@/lib/format";
 import { kgToLb } from "@/lib/fitness";
@@ -31,6 +36,7 @@ export default async function ProgressPage() {
     getMeasurements(),
     getSessions(),
   ]);
+  const strength = await getStrengthHistory();
 
   const unit = profile?.unit_system ?? "metric";
   const stats = computeStats(profile, measurements, sessions);
@@ -121,6 +127,7 @@ export default async function ProgressPage() {
           <TabsTrigger value="weight">Weight</TabsTrigger>
           <TabsTrigger value="bodyfat">Body fat</TabsTrigger>
           <TabsTrigger value="measurements">Measurements</TabsTrigger>
+          <TabsTrigger value="strength">Strength</TabsTrigger>
           <TabsTrigger value="training">Training</TabsTrigger>
         </TabsList>
 
@@ -190,6 +197,39 @@ export default async function ProgressPage() {
               );
             })}
           </div>
+        </TabsContent>
+
+        <TabsContent value="strength" className="mt-4">
+          {strength.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center text-muted-foreground">
+                Log a few workouts and your top-weight trends for each lift will
+                appear here.
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {strength.map((s) => (
+                <Card key={s.slug}>
+                  <CardHeader>
+                    <CardTitle className="text-base">{s.name}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <AreaTrend
+                      data={s.points.map((p) => ({
+                        label: dateLabel(p.date),
+                        value: toW(p.weight),
+                      }))}
+                      color="var(--color-chart-4)"
+                      suffix={` ${weightUnit(unit)}`}
+                      height={180}
+                      domainPadding={5}
+                    />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="training" className="mt-4">
