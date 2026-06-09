@@ -1,7 +1,8 @@
 import {
   BarChart3,
   Boxes,
-  CalendarRange,
+  CalendarDays,
+  ClipboardList,
   Dumbbell,
   LayoutDashboard,
   LineChart,
@@ -32,9 +33,10 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/plan",
     label: "My Plan",
     mobileLabel: "Plan",
-    icon: CalendarRange,
+    icon: ClipboardList,
     mobile: true,
   },
+  { href: "/calendar", label: "Calendar", icon: CalendarDays },
   {
     href: "/workouts",
     label: "Workouts",
