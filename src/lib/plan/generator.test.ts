@@ -2,8 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import { generatePlan } from "@/lib/plan/generator";
 import { INJURY_AVOID, resolveEquipment } from "@/lib/plan/schemes";
+import { NEUTRAL_ADAPTATION } from "@/lib/adapt";
 import { getExercise } from "@/data";
-import type { PlanInput, WorkoutPlan } from "@/types";
+import type { AdaptationState, PlanInput, WorkoutPlan } from "@/types";
 
 const base: PlanInput = {
   goals: ["build_muscle"],
@@ -91,6 +92,86 @@ describe("generatePlan", () => {
     for (const day of generatePlan(base).days) {
       const slugs = day.exercises.map((e) => e.exercise_slug);
       expect(new Set(slugs).size).toBe(slugs.length);
+    }
+  });
+});
+
+describe("generatePlan with adaptation", () => {
+  const week: AdaptationState = { ...NEUTRAL_ADAPTATION, weekStart: "2026-06-08" };
+
+  it("is unchanged without an adaptation (backward compatible)", () => {
+    const plan = generatePlan(base);
+    expect(plan.adaptation).toBeNull();
+    // A neutral adaptation must not alter the programming either.
+    const neutral = generatePlan(base, week);
+    expect(neutral.days).toEqual(plan.days);
+    expect(neutral.summary).toBe(plan.summary);
+  });
+
+  it("is deterministic with an adaptation", () => {
+    const deload: AdaptationState = {
+      ...week,
+      deload: true,
+      volumeModifier: 0.6,
+      flags: ["deload"],
+      reasons: ["Planned deload"],
+    };
+    expect(shape(generatePlan(base, deload))).toEqual(
+      shape(generatePlan(base, deload))
+    );
+  });
+
+  it("reduces dosage on a deload without changing exercise selection", () => {
+    const deload: AdaptationState = {
+      ...week,
+      deload: true,
+      volumeModifier: 0.6,
+      flags: ["deload"],
+      reasons: ["Planned deload"],
+    };
+    const basePlan = generatePlan(base);
+    const plan = generatePlan(base, deload);
+
+    const slugsOf = (p: WorkoutPlan) =>
+      p.days.map((d) => d.exercises.map((e) => e.exercise_slug));
+    expect(slugsOf(plan)).toEqual(slugsOf(basePlan));
+
+    const totalSets = (p: WorkoutPlan) =>
+      p.days.flatMap((d) => d.exercises).reduce((sum, e) => sum + e.sets, 0);
+    expect(totalSets(plan)).toBeLessThan(totalSets(basePlan));
+
+    const someNote = plan.days[0].exercises[0].notes ?? "";
+    expect(someNote).toMatch(/deload/i);
+    expect(plan.summary).toMatch(/deload/i);
+    expect(plan.adaptation).toEqual(deload);
+  });
+
+  it("adds volume on a 1.15 modifier and never drops below 2 working sets", () => {
+    const up: AdaptationState = {
+      ...week,
+      volumeModifier: 1.15,
+      flags: ["volume_up"],
+      reasons: ["Earned it"],
+    };
+    const down: AdaptationState = {
+      ...week,
+      volumeModifier: 0.6,
+      deload: true,
+      flags: ["deload"],
+      reasons: [],
+    };
+    const basePlan = generatePlan(base);
+    const more = generatePlan(base, up);
+    const less = generatePlan(base, down);
+
+    const totalSets = (p: WorkoutPlan) =>
+      p.days.flatMap((d) => d.exercises).reduce((sum, e) => sum + e.sets, 0);
+    expect(totalSets(more)).toBeGreaterThan(totalSets(basePlan));
+
+    for (const day of less.days) {
+      for (const e of day.exercises) {
+        expect(e.sets).toBeGreaterThanOrEqual(1);
+      }
     }
   });
 });

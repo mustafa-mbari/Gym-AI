@@ -20,29 +20,30 @@ export function ExerciseList({
     <ul className={cn("divide-y", className)}>
       {exercises.map((ex, i) => (
         <li key={`${ex.exercise_slug}-${i}`}>
-          <ExerciseInfoDialog slug={ex.exercise_slug}>
-            <button className="flex w-full items-center gap-3 py-3 text-left transition-colors hover:bg-accent/40">
-              <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">
-                {i + 1}
+          <ExerciseInfoDialog
+            slug={ex.exercise_slug}
+            className="flex w-full items-center gap-3 py-3 text-left transition-colors hover:bg-accent/40"
+          >
+            <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">
+              {i + 1}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate font-medium">{ex.name}</span>
+              <span className="block truncate text-xs text-muted-foreground">
+                {muscleLabel(ex.muscle_groups[0])}
+                {ex.tempo ? ` · tempo ${ex.tempo}` : ""}
+                {ex.notes ? ` · ${ex.notes}` : ""}
               </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-medium">{ex.name}</p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {muscleLabel(ex.muscle_groups[0])}
-                  {ex.tempo ? ` · tempo ${ex.tempo}` : ""}
-                  {ex.notes ? ` · ${ex.notes}` : ""}
-                </p>
-              </div>
-              <div className="shrink-0 text-right">
-                <p className="text-sm font-semibold tabular-nums">
-                  {ex.sets} × {ex.reps}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {ex.rest_seconds}s rest
-                </p>
-              </div>
-              <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-            </button>
+            </span>
+            <span className="shrink-0 text-right">
+              <span className="block text-sm font-semibold tabular-nums">
+                {ex.sets} × {ex.reps}
+              </span>
+              <span className="block text-xs text-muted-foreground">
+                {ex.rest_seconds}s rest
+              </span>
+            </span>
+            <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
           </ExerciseInfoDialog>
         </li>
       ))}

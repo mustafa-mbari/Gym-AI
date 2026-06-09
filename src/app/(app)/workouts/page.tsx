@@ -7,16 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageContainer, PageHeader } from "@/components/page-container";
 import { PlanDayCard } from "@/components/plan/day-card";
-import { getProfile, getSessions } from "@/lib/queries";
-import { planForProfile } from "@/lib/plan";
+import { AdaptationBanner } from "@/components/plan/adaptation-banner";
+import { getCompanionData } from "@/lib/queries";
 import { formatMinutes, formatWeight } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Workouts" };
 
 export default async function WorkoutsPage() {
-  const [profile, sessions] = await Promise.all([getProfile(), getSessions()]);
+  const data = await getCompanionData();
 
-  if (!profile) {
+  if (!data) {
     return (
       <PageContainer>
         <Card>
@@ -34,7 +34,7 @@ export default async function WorkoutsPage() {
     );
   }
 
-  const plan = planForProfile(profile);
+  const { plan, adaptation, sessions, profile } = data;
   const recent = sessions.filter((s) => s.status === "completed").slice(0, 6);
   const unit = profile.unit_system;
 
@@ -44,6 +44,8 @@ export default async function WorkoutsPage() {
         title="Workouts"
         description="Pick today's session and train with guided sets, reps and rest timers."
       />
+
+      <AdaptationBanner adaptation={adaptation} />
 
       <div className="grid gap-5 lg:grid-cols-2">
         {plan.days.map((day) => (

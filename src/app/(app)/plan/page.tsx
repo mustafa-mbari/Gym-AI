@@ -13,8 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageContainer, PageHeader } from "@/components/page-container";
 import { PlanDayCard } from "@/components/plan/day-card";
-import { getProfile } from "@/lib/queries";
-import { planForProfile } from "@/lib/plan";
+import { AdaptationBanner } from "@/components/plan/adaptation-banner";
+import { getCompanionData } from "@/lib/queries";
 import { goalLabel } from "@/lib/labels";
 import { TRAINING_EXPERIENCES } from "@/lib/constants";
 
@@ -29,9 +29,9 @@ export default async function PlanPage({
   searchParams: Promise<{ welcome?: string }>;
 }) {
   const { welcome } = await searchParams;
-  const profile = await getProfile();
+  const data = await getCompanionData();
 
-  if (!profile) {
+  if (!data) {
     return (
       <PageContainer>
         <Card>
@@ -50,10 +50,11 @@ export default async function PlanPage({
     );
   }
 
-  const plan = planForProfile(profile);
+  const { plan, adaptation } = data;
 
   return (
     <PageContainer>
+      <AdaptationBanner adaptation={adaptation} />
       {welcome && (
         <div className="mb-6 flex items-start gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
           <PartyPopper className="mt-0.5 size-6 shrink-0 text-primary" />

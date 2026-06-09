@@ -190,6 +190,23 @@ export const SLEEP_QUALITIES = [
   { value: "excellent", label: "Excellent" },
 ] as const;
 
+/** "How do you feel today?" — the daily check-in's headline question. */
+export const FEEL_OPTIONS = [
+  { value: "excellent", label: "Excellent", icon: "Sparkles" },
+  { value: "good", label: "Good", icon: "Smile" },
+  { value: "average", label: "Average", icon: "Meh" },
+  { value: "poor", label: "Poor", icon: "Frown" },
+] as const;
+
+/** Optional mood tag on the daily check-in. */
+export const MOOD_OPTIONS = [
+  { value: "motivated", label: "Motivated" },
+  { value: "calm", label: "Calm" },
+  { value: "neutral", label: "Neutral" },
+  { value: "stressed", label: "Stressed" },
+  { value: "down", label: "Down" },
+] as const;
+
 export const INJURY_OPTIONS = [
   { value: "knee", label: "Knee", icon: "PersonStanding" },
   { value: "back", label: "Back", icon: "Spline" },

@@ -27,19 +27,31 @@ const iconFor = (category: string) =>
       ? "Hexagon"
       : "Dumbbell";
 
+/**
+ * Info dialog for an exercise. Renders its own trigger button (`children` is
+ * the trigger's content, styled via `className`) — deliberately NOT `asChild`:
+ * slotting server-rendered children into a Radix Slot crashes SSR under
+ * React 19.2 ("Primitive.button failed to slot onto its children").
+ */
 export function ExerciseInfoDialog({
   slug,
   children,
+  className,
+  "aria-label": ariaLabel,
 }: {
   slug: string;
   children: React.ReactNode;
+  className?: string;
+  "aria-label"?: string;
 }) {
   const ex = getExercise(slug);
-  if (!ex) return <>{children}</>;
+  if (!ex) return <div className={className}>{children}</div>;
 
   return (
     <Dialog>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogTrigger className={className} aria-label={ariaLabel}>
+        {children}
+      </DialogTrigger>
       <DialogContent className="max-h-[88vh] gap-4 overflow-y-auto sm:max-w-lg">
         <DialogHeader className="text-left">
           <DialogTitle>{ex.name}</DialogTitle>

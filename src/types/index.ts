@@ -4,9 +4,11 @@ import type {
   DIFFICULTIES,
   EQUIPMENT_CATEGORIES,
   EQUIPMENT_TYPES,
+  FEEL_OPTIONS,
   GENDERS,
   GOALS,
   GYM_ACCESS_OPTIONS,
+  MOOD_OPTIONS,
   MUSCLE_GROUPS,
   SLEEP_QUALITIES,
   SPLIT_TYPES,
@@ -19,6 +21,8 @@ import type {
 type ValueOf<T extends ReadonlyArray<{ value: string }>> = T[number]["value"];
 
 export type Gender = ValueOf<typeof GENDERS>;
+export type Feel = ValueOf<typeof FEEL_OPTIONS>;
+export type Mood = ValueOf<typeof MOOD_OPTIONS>;
 export type UnitSystem = ValueOf<typeof UNIT_SYSTEMS>;
 export type TrainingExperience = ValueOf<typeof TRAINING_EXPERIENCES>;
 export type GymAccess = ValueOf<typeof GYM_ACCESS_OPTIONS>;
@@ -173,6 +177,8 @@ export interface WorkoutPlan {
   days: WorkoutDay[];
   /** Weekly set count per muscle group, for the distribution chart. */
   weekly_volume: Record<string, number>;
+  /** The weekly adaptation applied to this plan, if any (null = base plan). */
+  adaptation?: AdaptationState | null;
   created_at: string;
 }
 
@@ -210,6 +216,22 @@ export interface TrainingSession {
   notes: string | null;
 }
 
+/** One lightweight wellness snapshot per user per local calendar day. */
+export interface DailyCheckin {
+  id: string;
+  profile_id: string;
+  /** User-local calendar day, "yyyy-MM-dd". */
+  date: string;
+  feel: Feel;
+  energy: number; // 1–10
+  sleep: number; // 1–10
+  soreness: number; // 1–10 (10 = very sore)
+  mood: Mood | null;
+  weight_kg: number | null;
+  note: string | null;
+  created_at: string;
+}
+
 export interface ExerciseLog {
   id: string;
   session_id: string;
@@ -231,4 +253,173 @@ export interface PlanInput {
   available_days: number;
   session_minutes: number;
   injuries: string[];
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Daily companion: adaptation, journey, reviews, daily brief
+// All of these are *derived* — pure functions over (profile, check-ins,
+// sessions, measurements) — and are never persisted.
+// ──────────────────────────────────────────────────────────────────────────
+
+export type AdaptationFlag =
+  | "deload"
+  | "volume_up"
+  | "volume_down"
+  | "extra_recovery"
+  | "plateau"
+  | "low_adherence"
+  | "low_readiness"
+  | "ahead_of_pace";
+
+/**
+ * How this week's plan dosage is adjusted. Computed only from data *before*
+ * the current ISO week's Monday, so it is stable for the whole week.
+ */
+export interface AdaptationState {
+  /** ISO Monday this state applies to. */
+  weekStart: string;
+  /** Multiplier on per-exercise set counts (0.6 deload … 1.15 push). */
+  volumeModifier: number;
+  deload: boolean;
+  extraRecovery: boolean;
+  /** Last completed week's average readiness (0–100), if known. */
+  readiness: number | null;
+  /** Adherence over the last two completed weeks (0–100), if known. */
+  adherencePct: number | null;
+  plateau: boolean;
+  flags: AdaptationFlag[];
+  /** Human-readable explanations, shown in the UI and fed to the coach. */
+  reasons: string[];
+}
+
+export type JourneyTarget =
+  | {
+      kind: "weight";
+      startKg: number;
+      currentKg: number;
+      targetKg: number;
+      direction: "down" | "up";
+      /** Safe planned rate toward the target, kg/week (always positive). */
+      plannedRateKgPerWeek: number;
+    }
+  | {
+      kind: "consistency";
+      /** Sessions per week the member committed to. */
+      weeklyTarget: number;
+      horizonWeeks: number;
+    };
+
+export interface Milestone {
+  id: string;
+  label: string;
+  achieved: boolean;
+  achievedDate: string | null;
+  projectedDate: string | null;
+  /** 0–100 toward this milestone. */
+  progressPct: number;
+}
+
+export interface Pace {
+  /** kg/week (weight) or sessions/week (consistency), toward the goal. */
+  actualPerWeek: number | null;
+  requiredPerWeek: number;
+  /** actual / required, sign-normalised toward the goal. */
+  ratio: number | null;
+  status: "ahead" | "on_track" | "behind" | "no_data";
+  /** Positive = ahead of the planned timeline by this many weeks. */
+  deltaWeeks: number | null;
+}
+
+export interface Journey {
+  target: JourneyTarget;
+  startDate: string;
+  /** 0–100 toward the goal. */
+  progressPct: number;
+  milestones: Milestone[];
+  pace: Pace;
+  /** Projected completion at the *actual* pace. */
+  etaISO: string | null;
+  /** Completion date the original plan implies (required pace). */
+  plannedEtaISO: string | null;
+  /** Heuristic 5–95. */
+  successProbability: number;
+  risks: string[];
+}
+
+export type WeeklyDecision =
+  | "increase_load"
+  | "keep"
+  | "reduce_load"
+  | "deload"
+  | "add_recovery";
+
+export interface WeeklyReview {
+  weekStart: string;
+  weekEnd: string;
+  weightChangeKg: number | null;
+  sessionsCompleted: number;
+  sessionsPlanned: number;
+  adherencePct: number;
+  avgEnergy: number | null;
+  avgSleep: number | null;
+  avgSoreness: number | null;
+  checkinDays: number;
+  /** What the engine decided for the *following* week. */
+  decision: WeeklyDecision;
+  reasons: string[];
+  /** Positive-reinforcement bullets. */
+  wins: string[];
+}
+
+export interface MonthlyReview {
+  monthStart: string;
+  expectedChangeKg: number | null;
+  actualChangeKg: number | null;
+  /** actual / expected × 100, when both known. */
+  variancePct: number | null;
+  adherencePct: number;
+  milestonesHit: string[];
+  risks: string[];
+  summary: string[];
+}
+
+/** Habit metrics derived from check-ins + sessions. */
+export interface Consistency {
+  /** Consecutive checked-in days, counting back from today (or yesterday). */
+  checkinStreakDays: number;
+  /** Consecutive weeks with ≥1 completed workout. */
+  workoutStreakWeeks: number;
+  totalCheckins: number;
+  totalWorkouts: number;
+  badges: Array<{ id: string; label: string; achieved: boolean }>;
+}
+
+export type DailyWorkout =
+  | {
+      kind: "training";
+      dayIndex: number;
+      name: string;
+      focus: string;
+      estimatedMinutes: number;
+      /** Readiness-based dosage note ("go light today"), if any. */
+      intensityNote: string | null;
+    }
+  | { kind: "rest"; suggestion: string }
+  | { kind: "done"; completedName: string };
+
+/** Everything the Today hub needs to answer "what should I do today?" */
+export interface DailyBrief {
+  date: string;
+  /** The single most important thing today, one sentence. */
+  objective: string;
+  workout: DailyWorkout;
+  /** Readiness from *today's* check-in (null until checked in). */
+  readiness: number | null;
+  needsCheckin: boolean;
+  nutrition: { calories: number; protein: number; waterL: number; note: string };
+  activity: { steps: number; note: string };
+  recovery: { sleepTargetH: number; notes: string[] };
+  motivation: string;
+  streak: Consistency;
+  reviewDue: "weekly" | "monthly" | null;
 }

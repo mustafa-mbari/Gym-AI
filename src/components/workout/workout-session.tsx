@@ -18,7 +18,7 @@ import {
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -268,10 +268,12 @@ export function WorkoutSession({
                   </p>
                 )}
               </div>
-              <ExerciseInfoDialog slug={exercise.exercise_slug}>
-                <Button variant="outline" size="icon" aria-label="Exercise info">
-                  <Info className="size-4" />
-                </Button>
+              <ExerciseInfoDialog
+                slug={exercise.exercise_slug}
+                className={buttonVariants({ variant: "outline", size: "icon" })}
+                aria-label="Exercise info"
+              >
+                <Info className="size-4" />
               </ExerciseInfoDialog>
             </div>
 

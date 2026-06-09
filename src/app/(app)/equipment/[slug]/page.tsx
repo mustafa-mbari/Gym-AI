@@ -139,11 +139,12 @@ export default async function EquipmentDetailPage({
                 <ul className="divide-y">
                   {related.map((ex) => (
                     <li key={ex.slug}>
-                      <ExerciseInfoDialog slug={ex.slug}>
-                        <button className="flex w-full items-center justify-between gap-2 py-2.5 text-left hover:text-primary">
-                          <span className="font-medium">{ex.name}</span>
-                          <ChevronRight className="size-4 text-muted-foreground" />
-                        </button>
+                      <ExerciseInfoDialog
+                        slug={ex.slug}
+                        className="flex w-full items-center justify-between gap-2 py-2.5 text-left hover:text-primary"
+                      >
+                        <span className="font-medium">{ex.name}</span>
+                        <ChevronRight className="size-4 text-muted-foreground" />
                       </ExerciseInfoDialog>
                       <p className="-mt-1 pb-2 text-xs text-muted-foreground">
                         {muscleLabel(ex.muscle_groups[0])} · {ex.default_sets} ×{" "}

@@ -4,10 +4,11 @@ import {
   CalendarDays,
   ClipboardList,
   Dumbbell,
-  LayoutDashboard,
   LineChart,
+  Map,
   Settings,
   Sparkles,
+  Sun,
   User,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -25,9 +26,16 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   {
     href: "/dashboard",
-    label: "Dashboard",
-    mobileLabel: "Home",
-    icon: LayoutDashboard,
+    label: "Today",
+    mobileLabel: "Today",
+    icon: Sun,
+    mobile: true,
+  },
+  {
+    href: "/journey",
+    label: "Journey",
+    mobileLabel: "Journey",
+    icon: Map,
     mobile: true,
   },
   {
@@ -35,7 +43,6 @@ export const NAV_ITEMS: NavItem[] = [
     label: "My Plan",
     mobileLabel: "Plan",
     icon: ClipboardList,
-    mobile: true,
   },
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
   {

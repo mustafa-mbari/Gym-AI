@@ -2,8 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 
 import { WorkoutSession } from "@/components/workout/workout-session";
-import { getLastLoggedSets, getProfile } from "@/lib/queries";
-import { planForProfile } from "@/lib/plan";
+import { getCompanionData, getLastLoggedSets } from "@/lib/queries";
 
 export const metadata: Metadata = { title: "Workout session" };
 
@@ -13,17 +12,21 @@ export default async function SessionPage({
   params: Promise<{ index: string }>;
 }) {
   const { index } = await params;
-  const [profile, lastSets] = await Promise.all([
-    getProfile(),
+  const [data, lastSets] = await Promise.all([
+    getCompanionData(),
     getLastLoggedSets(),
   ]);
-  if (!profile) redirect("/onboarding");
+  if (!data) redirect("/onboarding");
 
-  const plan = planForProfile(profile);
-  const day = plan.days[Number(index)];
+  // The adapted plan, so logged sets match what the member sees this week.
+  const day = data.plan.days[Number(index)];
   if (!day) notFound();
 
   return (
-    <WorkoutSession day={day} unit={profile.unit_system} lastSets={lastSets} />
+    <WorkoutSession
+      day={day}
+      unit={data.profile.unit_system}
+      lastSets={lastSets}
+    />
   );
 }

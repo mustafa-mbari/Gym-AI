@@ -4,9 +4,11 @@ import {
   DAILY_ACTIVITY_OPTIONS,
   DIET_TYPES,
   EQUIPMENT_TYPES,
+  FEEL_OPTIONS,
   GENDERS,
   GOALS,
   GYM_ACCESS_OPTIONS,
+  MOOD_OPTIONS,
   SLEEP_QUALITIES,
   TRAINING_EXPERIENCES,
   UNIT_SYSTEMS,
@@ -141,6 +143,19 @@ export const STEP_FIELDS = [
 /** Profile patch validation for the settings screen. */
 export const profileUpdateSchema = onboardingSchema.partial();
 export type ProfileUpdate = z.infer<typeof profileUpdateSchema>;
+
+/** Daily check-in submission. `date` is the user-local calendar day. */
+export const checkinSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date"),
+  feel: z.enum(enumValues(FEEL_OPTIONS)),
+  energy: z.coerce.number().int().min(1).max(10),
+  sleep: z.coerce.number().int().min(1).max(10),
+  soreness: z.coerce.number().int().min(1).max(10),
+  mood: z.enum(enumValues(MOOD_OPTIONS)).nullable().optional(),
+  weight_kg: optionalNumber(30, 400),
+  note: z.string().max(300).optional(),
+});
+export type CheckinInput = z.infer<typeof checkinSchema>;
 
 /** New measurement entry (progress screen). */
 export const measurementSchema = z.object({

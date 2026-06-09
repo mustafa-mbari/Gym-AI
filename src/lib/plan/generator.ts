@@ -11,6 +11,7 @@
  */
 import { EXERCISES } from "@/data/exercises";
 import type {
+  AdaptationState,
   Difficulty,
   Exercise,
   Goal,
@@ -155,7 +156,8 @@ function selectExercise(slot: Slot, ctx: SelectContext): Exercise | null {
 function buildPlannedExercise(
   ex: Exercise,
   slot: Slot,
-  emphasis: Emphasis
+  emphasis: Emphasis,
+  adaptation?: AdaptationState
 ): PlannedExercise {
   const scheme = SCHEMES[emphasis][slot.role];
   const timed = isTimed(ex, slot.role);
@@ -176,16 +178,44 @@ function buildPlannedExercise(
     reps = `${scheme.repLow}–${scheme.repHigh}`;
   }
 
+  // Weekly adaptation only moves the dosage (sets/rest), never the exercise
+  // selection — the plan stays familiar while the load breathes with the
+  // member. Without an adaptation the output is identical to the base plan.
+  let sets = slot.role === "cardio" ? 1 : scheme.sets;
+  if (
+    adaptation &&
+    slot.role !== "cardio" &&
+    adaptation.volumeModifier !== 1
+  ) {
+    sets = Math.max(
+      slot.role === "core" ? 1 : 2,
+      Math.round(scheme.sets * adaptation.volumeModifier)
+    );
+  }
+  let rest = scheme.rest;
+  if (
+    adaptation?.extraRecovery &&
+    (slot.role === "accessory" || slot.role === "core")
+  ) {
+    rest += 15;
+  }
+
+  const noteParts: string[] = [];
+  if (ex.is_unilateral) noteParts.push("Per side");
+  if (adaptation?.deload && slot.role !== "cardio") {
+    noteParts.push("Deload — use ~60% of your usual loads");
+  }
+
   return {
     exercise_slug: ex.slug,
     name: ex.name,
-    sets: slot.role === "cardio" ? 1 : scheme.sets,
+    sets,
     reps,
     rep_low: repLow,
     rep_high: repHigh,
-    rest_seconds: scheme.rest,
+    rest_seconds: rest,
     tempo: timed ? null : scheme.tempo,
-    notes: ex.is_unilateral ? "Per side" : null,
+    notes: noteParts.length ? noteParts.join(" · ") : null,
     superset_group: null,
     muscle_groups: ex.muscle_groups,
   };
@@ -223,7 +253,8 @@ function buildDay(
   index: number,
   ctx: SelectContext,
   emphasis: Emphasis,
-  budget: number
+  budget: number,
+  adaptation?: AdaptationState
 ): WorkoutDay {
   ctx.usedToday = new Set();
   let cardioNote: string | null = null;
@@ -239,7 +270,7 @@ function buildDay(
         Math.round(SCHEMES[emphasis].cardio.repLow / 60)
       )}`;
     }
-    planned.push(buildPlannedExercise(ex, slot, emphasis));
+    planned.push(buildPlannedExercise(ex, slot, emphasis, adaptation));
   }
 
   const fitted = trimToTime(planned, budget);
@@ -346,8 +377,15 @@ function buildGuidance(
 
 /**
  * Generate a complete, personalised workout plan from a normalised profile.
+ *
+ * The optional `adaptation` (see `src/lib/adapt`) scales the weekly dosage —
+ * set counts, rest, deload notes — without touching exercise selection.
+ * Calling without it yields the exact base plan (backward compatible).
  */
-export function generatePlan(input: PlanInput): WorkoutPlan {
+export function generatePlan(
+  input: PlanInput,
+  adaptation?: AdaptationState
+): WorkoutPlan {
   const experience: TrainingExperience = input.experience ?? "beginner";
   const primaryGoal = input.goals[0] ?? "general_fitness";
   const emphasis = GOAL_EMPHASIS[primaryGoal];
@@ -372,18 +410,21 @@ export function generatePlan(input: PlanInput): WorkoutPlan {
 
   const templates = chooseSplit(days, experience, emphasis);
   const workoutDays = templates.map((t, i) =>
-    buildDay(t, i, ctx, emphasis, budget)
+    buildDay(t, i, ctx, emphasis, budget, adaptation)
   );
 
   const splitType = splitLabelFor(days, experience);
   const splitName = SPLIT_LABEL[splitType] ?? "Custom";
   const weeks = emphasis === "strength" ? 6 : 8;
 
-  const summary = `A ${days}-day ${splitName} program tuned for ${EMPHASIS_LABEL[
+  let summary = `A ${days}-day ${splitName} program tuned for ${EMPHASIS_LABEL[
     emphasis
   ].toLowerCase()}. Each session is built around your available equipment and fits roughly ${formatMinutes(
     budget
   )}.`;
+  if (adaptation?.deload) {
+    summary += " This is a planned deload week — roughly 60% of normal volume.";
+  }
 
   return {
     id:
@@ -401,6 +442,7 @@ export function generatePlan(input: PlanInput): WorkoutPlan {
     guidance: buildGuidance(emphasis, input.goals, input.injuries, days),
     days: workoutDays,
     weekly_volume: computeWeeklyVolume(workoutDays),
+    adaptation: adaptation ?? null,
     created_at: new Date().toISOString(),
   };
 }

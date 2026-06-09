@@ -2,8 +2,12 @@
  * Demo data powering the app in "demo mode" (no Supabase configured) and the
  * marketing previews. Deterministic so screenshots/tests stay stable.
  */
+import { addDaysISO, isoDayOfWeek } from "@/lib/dates";
 import type {
+  DailyCheckin,
+  Feel,
   Measurement,
+  Mood,
   Profile,
   TrainingSession,
 } from "@/types";
@@ -125,6 +129,54 @@ export function demoSessions(): TrainingSession[] {
       notes: null,
     };
   });
+}
+
+const DEMO_MOODS: Array<Mood | null> = [
+  "motivated",
+  "calm",
+  null,
+  "neutral",
+  "motivated",
+];
+
+function feelForEnergy(energy: number): Feel {
+  if (energy >= 8) return "excellent";
+  if (energy >= 6) return "good";
+  if (energy >= 4) return "average";
+  return "poor";
+}
+
+/**
+ * ~4 weeks of deterministic daily check-ins ending *yesterday* (today stays
+ * open so the check-in card is actionable in demos). Two human-looking gaps
+ * per nine days, but never within the last five days — the demo user shows a
+ * live 5-day streak. Weight is logged on Mondays only, trending to the goal.
+ */
+export function demoCheckins(todayISO: string): DailyCheckin[] {
+  const out: DailyCheckin[] = [];
+  for (let i = 28; i >= 1; i--) {
+    // Skip two deterministic days per ~9-day cycle, keeping the recent streak.
+    if (i >= 6 && (i % 9 === 6 || i % 9 === 8)) continue;
+    const date = addDaysISO(todayISO, -i);
+    const energy = Math.min(10, Math.max(1, 6 + Math.round(Math.sin(i * 0.9) * 2)));
+    const sleep = Math.min(10, Math.max(1, 6 + Math.round(Math.sin(i * 0.7 + 1) * 2)));
+    const soreness = Math.min(10, Math.max(1, 4 + Math.round(Math.sin(i * 1.1 + 2) * 2)));
+    const isMonday = isoDayOfWeek(date) === 1;
+    out.push({
+      id: `demo-c-${date}`,
+      profile_id: "demo-user",
+      date,
+      feel: feelForEnergy(energy),
+      energy,
+      sleep,
+      soreness,
+      mood: DEMO_MOODS[i % DEMO_MOODS.length],
+      weight_kg: isMonday ? +(84 + i * 0.035 + Math.sin(i) * 0.2).toFixed(1) : null,
+      note: null,
+      created_at: `${date}T07:30:00.000Z`,
+    });
+  }
+  return out;
 }
 
 /** A single measurement snapshot from a profile's current values. */

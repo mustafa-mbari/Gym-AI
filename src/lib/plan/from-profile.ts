@@ -1,4 +1,4 @@
-import type { PlanInput, Profile } from "@/types";
+import type { AdaptationState, PlanInput, Profile } from "@/types";
 import type { OnboardingData } from "@/lib/validations";
 import { generatePlan } from "./generator";
 
@@ -16,12 +16,13 @@ export function profileToPlanInput(profile: Profile): PlanInput {
 }
 
 /**
- * The active plan is a pure function of the profile, so we can recompute it
- * deterministically rather than persisting every set/rep. (Plan tables still
- * exist in the schema for future editing / history.)
+ * The active plan is a pure function of the profile (plus, optionally, this
+ * week's adaptation state), so we can recompute it deterministically rather
+ * than persisting every set/rep. (Plan tables still exist in the schema for
+ * future editing / history.)
  */
-export function planForProfile(profile: Profile) {
-  return generatePlan(profileToPlanInput(profile));
+export function planForProfile(profile: Profile, adaptation?: AdaptationState) {
+  return generatePlan(profileToPlanInput(profile), adaptation);
 }
 
 /** Convert validated onboarding answers into a full Profile row. */
