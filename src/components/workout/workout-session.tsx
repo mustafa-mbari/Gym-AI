@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Flag,
+  History,
   Info,
   Loader2,
   Plus,
@@ -30,7 +31,7 @@ import {
 } from "@/components/ui/dialog";
 import { MediaPlaceholder } from "@/components/media-placeholder";
 import { ExerciseInfoDialog } from "@/components/exercise/exercise-dialog";
-import { completeSession } from "@/lib/session-actions";
+import { completeSession, type LoggedSet } from "@/lib/session-actions";
 import { kgToLb, lbToKg } from "@/lib/fitness";
 import { formatDuration, weightUnit } from "@/lib/format";
 import { muscleLabel } from "@/lib/labels";
@@ -46,22 +47,30 @@ interface SetEntry {
 export function WorkoutSession({
   day,
   unit,
+  lastSets = {},
 }: {
   day: WorkoutDay;
   unit: UnitSystem;
+  lastSets?: Record<string, { weight_kg: number | null; reps: number | null }>;
 }) {
   const router = useRouter();
+
+  const toDisplayWeight = (kg: number) =>
+    String(Math.round(unit === "imperial" ? kgToLb(kg) : kg));
 
   const [elapsed, setElapsed] = React.useState(0);
   const [current, setCurrent] = React.useState(0);
   const [sets, setSets] = React.useState<SetEntry[][]>(() =>
-    day.exercises.map((ex) =>
-      Array.from({ length: ex.sets }, () => ({
-        weight: "",
-        reps: String(ex.rep_high),
+    day.exercises.map((ex) => {
+      const last = lastSets[ex.exercise_slug];
+      const weight = last?.weight_kg != null ? toDisplayWeight(last.weight_kg) : "";
+      const reps = String(last?.reps ?? ex.rep_high);
+      return Array.from({ length: ex.sets }, () => ({
+        weight,
+        reps,
         done: false,
-      }))
-    )
+      }));
+    })
   );
   const [rest, setRest] = React.useState<{ active: boolean; left: number }>({
     active: false,
@@ -122,6 +131,26 @@ export function WorkoutSession({
     return Math.round(kg);
   }
 
+  function collectLogs(): LoggedSet[] {
+    const logs: LoggedSet[] = [];
+    day.exercises.forEach((ex, ei) => {
+      sets[ei].forEach((s, si) => {
+        if (!s.done) return;
+        const w = parseFloat(s.weight);
+        const reps = parseInt(s.reps);
+        logs.push({
+          exercise_slug: ex.exercise_slug,
+          set_number: si + 1,
+          reps: Number.isNaN(reps) ? null : reps,
+          weight_kg: Number.isNaN(w)
+            ? null
+            : +(unit === "imperial" ? lbToKg(w) : w).toFixed(1),
+        });
+      });
+    });
+    return logs;
+  }
+
   async function finish() {
     setFinishing(true);
     const res = await completeSession({
@@ -129,6 +158,7 @@ export function WorkoutSession({
       day_name: day.name,
       duration_seconds: elapsed,
       total_volume_kg: totalVolumeKg(),
+      logs: collectLogs(),
     });
     if (res.ok) {
       toast.success("Workout complete — nice work! 💪");
@@ -224,6 +254,19 @@ export function WorkoutSession({
                   Target: {exercise.sets} sets × {exercise.reps} reps ·{" "}
                   {exercise.rest_seconds}s rest
                 </p>
+                {lastSets[exercise.exercise_slug]?.weight_kg != null && (
+                  <p className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary">
+                    <History className="size-3.5" />
+                    Last time:{" "}
+                    {toDisplayWeight(
+                      lastSets[exercise.exercise_slug]!.weight_kg as number
+                    )}{" "}
+                    {weightUnit(unit)}
+                    {lastSets[exercise.exercise_slug]?.reps != null
+                      ? ` × ${lastSets[exercise.exercise_slug]!.reps}`
+                      : ""}
+                  </p>
+                )}
               </div>
               <ExerciseInfoDialog slug={exercise.exercise_slug}>
                 <Button variant="outline" size="icon" aria-label="Exercise info">

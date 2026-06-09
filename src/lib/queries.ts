@@ -13,7 +13,7 @@ import type { Measurement, Profile, TrainingSession } from "@/types";
 export const DEMO_PROFILE_COOKIE = "jym-demo-profile";
 
 /** Coerce a DB row into a fully-typed Profile with safe defaults. */
-function rowToProfile(row: Record<string, unknown>): Profile {
+export function rowToProfile(row: Record<string, unknown>): Profile {
   return {
     ...(row as unknown as Profile),
     available_equipment: (row.available_equipment as string[]) ?? [],
@@ -101,4 +101,39 @@ export async function getSessions(): Promise<TrainingSession[]> {
     }
   }
   return demoSessions();
+}
+
+/**
+ * The most recent logged weight/reps per exercise, for "last time" recall in
+ * the guided session. RLS scopes `exercise_logs` to the user, so a plain,
+ * newest-first scan + first-seen-per-slug reduction is enough.
+ */
+export async function getLastLoggedSets(): Promise<
+  Record<string, { weight_kg: number | null; reps: number | null }>
+> {
+  const supabase = await createClient();
+  if (!supabase) return {};
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return {};
+
+  const { data } = await supabase
+    .from("exercise_logs")
+    .select("exercise_slug, weight_kg, reps, created_at")
+    .order("created_at", { ascending: false })
+    .limit(400);
+
+  const out: Record<string, { weight_kg: number | null; reps: number | null }> =
+    {};
+  for (const row of (data ?? []) as Array<{
+    exercise_slug: string;
+    weight_kg: number | null;
+    reps: number | null;
+  }>) {
+    if (!(row.exercise_slug in out)) {
+      out[row.exercise_slug] = { weight_kg: row.weight_kg, reps: row.reps };
+    }
+  }
+  return out;
 }

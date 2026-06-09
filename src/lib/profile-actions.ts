@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
 import { onboardingToProfile } from "@/lib/plan/from-profile";
+import { ensureActivePlan } from "@/lib/plan-persistence";
 import { DEMO_PROFILE_COOKIE } from "@/lib/queries";
 import {
   measurementSchema,
@@ -50,6 +51,8 @@ export async function saveOnboarding(
         .from("profiles")
         .upsert(profileToRow(profile));
       if (error) return { ok: false, error: error.message };
+      // Persist the freshly generated plan into the relational tables.
+      await ensureActivePlan(supabase, user.id);
       revalidatePath("/", "layout");
       return { ok: true };
     }
@@ -80,6 +83,8 @@ export async function updateProfile(
         .update({ ...parsed.data, updated_at: new Date().toISOString() })
         .eq("id", user.id);
       if (error) return { ok: false, error: error.message };
+      // Re-sync the persisted plan in case training inputs changed.
+      await ensureActivePlan(supabase, user.id);
       revalidatePath("/", "layout");
       return { ok: true };
     }
