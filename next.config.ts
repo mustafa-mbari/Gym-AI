@@ -9,9 +9,8 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "images.unsplash.com" },
     ],
   },
-  // Surface type/lint issues at build time rather than hiding them.
+  // Surface type issues at build time rather than hiding them.
   typescript: { ignoreBuildErrors: false },
-  eslint: { ignoreDuringBuilds: false },
 };
 
 export default nextConfig;
