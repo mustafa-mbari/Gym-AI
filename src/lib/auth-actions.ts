@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { createClient } from "@/lib/supabase/server";
-import { isSupabaseConfigured, siteUrl } from "@/lib/supabase/config";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { siteUrl } from "@/lib/supabase/config";
 
 export type AuthState = {
   error?: string;
@@ -53,6 +53,28 @@ export async function signUp(
   const supabase = await createClient();
   if (!supabase) return DEMO_STATE;
 
+  // With the service key available, create the account pre-confirmed and log
+  // straight in — no email verification round-trip.
+  const admin = createAdminClient();
+  if (admin) {
+    const { error: createErr } = await admin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { first_name: firstName },
+    });
+    if (createErr) return { error: createErr.message };
+
+    const { error: signInErr } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (signInErr) return { error: signInErr.message };
+
+    revalidatePath("/", "layout");
+    redirect("/onboarding");
+  }
+
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -94,5 +116,3 @@ export async function signOut(): Promise<void> {
   revalidatePath("/", "layout");
   redirect("/login");
 }
-
-export { isSupabaseConfigured };

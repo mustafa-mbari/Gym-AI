@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { MediaPlaceholder } from "@/components/media-placeholder";
+import { CatalogMedia } from "@/components/catalog-media";
 import { getExercise } from "@/data";
 import {
   difficultyLabel,
@@ -58,10 +58,14 @@ export function ExerciseInfoDialog({
           <DialogDescription>{ex.description}</DialogDescription>
         </DialogHeader>
 
-        <MediaPlaceholder
-          seed={ex.slug}
+        <CatalogMedia
+          kind="exercises"
+          slug={ex.slug}
+          imageUrl={ex.image_url}
+          alt={ex.name}
           icon={iconFor(ex.category)}
           className="aspect-video w-full rounded-xl"
+          sizes="(max-width: 640px) 100vw, 512px"
         />
 
         <div className="flex flex-wrap gap-1.5">

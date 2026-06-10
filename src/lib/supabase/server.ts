@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import type { User } from "@supabase/supabase-js";
 
 import { isSupabaseConfigured, supabaseAnonKey, supabaseUrl } from "./config";
@@ -31,6 +32,19 @@ export async function createClient() {
         }
       },
     },
+  });
+}
+
+/**
+ * Service-role admin client (server-only — never expose to the browser).
+ * Returns `null` when the service key isn't configured; callers fall back
+ * to the regular flow.
+ */
+export function createAdminClient() {
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!isSupabaseConfigured || !serviceKey) return null;
+  return createSupabaseClient(supabaseUrl, serviceKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
   });
 }
 

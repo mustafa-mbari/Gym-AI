@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageContainer } from "@/components/page-container";
-import { MediaPlaceholder } from "@/components/media-placeholder";
+import { CatalogMedia } from "@/components/catalog-media";
 import { MachineQR } from "@/components/equipment/machine-qr";
 import { CATEGORY_ICON } from "@/components/equipment/equipment-card";
 import { ExerciseInfoDialog } from "@/components/exercise/exercise-dialog";
@@ -58,10 +58,15 @@ export default async function EquipmentDetailPage({
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <MediaPlaceholder
-            seed={item.slug}
+          <CatalogMedia
+            kind="equipment"
+            slug={item.slug}
+            imageUrl={item.image_url}
+            alt={item.name}
             icon={CATEGORY_ICON[item.category] ?? "Dumbbell"}
             className="aspect-[16/9] w-full rounded-2xl"
+            sizes="(max-width: 1024px) 100vw, 66vw"
+            priority
           />
 
           <div className="mt-5 flex flex-wrap items-center gap-2">

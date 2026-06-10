@@ -29,7 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { MediaPlaceholder } from "@/components/media-placeholder";
+import { CatalogMedia } from "@/components/catalog-media";
 import { ExerciseInfoDialog } from "@/components/exercise/exercise-dialog";
 import { completeSession, type LoggedSet } from "@/lib/session-actions";
 import { kgToLb, lbToKg } from "@/lib/fitness";
@@ -277,10 +277,12 @@ export function WorkoutSession({
               </ExerciseInfoDialog>
             </div>
 
-            <MediaPlaceholder
-              seed={exercise.exercise_slug}
-              icon="Dumbbell"
+            <CatalogMedia
+              kind="exercises"
+              slug={exercise.exercise_slug}
+              alt={exercise.name}
               className="aspect-[16/9] w-full rounded-xl"
+              sizes="(max-width: 896px) 100vw, 896px"
             />
 
             <div className="flex flex-wrap gap-1.5">

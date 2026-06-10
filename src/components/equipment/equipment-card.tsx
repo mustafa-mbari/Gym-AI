@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { MediaPlaceholder } from "@/components/media-placeholder";
+import { CatalogMedia } from "@/components/catalog-media";
 import { categoryLabel, difficultyLabel, difficultyTone } from "@/lib/labels";
 import type { Equipment } from "@/types";
 
@@ -23,10 +23,14 @@ export function EquipmentCard({ item }: { item: Equipment }) {
   return (
     <Link href={`/equipment/${item.slug}`} className="group block">
       <Card className="h-full gap-0 overflow-hidden p-0 transition-shadow group-hover:shadow-md">
-        <MediaPlaceholder
-          seed={item.slug}
+        <CatalogMedia
+          kind="equipment"
+          slug={item.slug}
+          imageUrl={item.image_url}
+          alt={item.name}
           icon={CATEGORY_ICON[item.category] ?? "Dumbbell"}
           className="aspect-[4/3] w-full"
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
         />
         <div className="flex flex-1 flex-col gap-2 p-4">
           <div className="flex items-start justify-between gap-2">
